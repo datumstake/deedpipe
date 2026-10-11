@@ -1,0 +1,5 @@
+build/
+mutants/
+__pycache__/
+*.pyc
+.venv/

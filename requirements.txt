@@ -1,0 +1,6 @@
+# Runtime. Both are named in the spec this was built against.
+pydantic>=2.0
+pypdf>=4.0
+
+# Dev only — generating the sample corpus. The pipeline does not import it.
+# reportlab>=4.0

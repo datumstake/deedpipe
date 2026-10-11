@@ -1,0 +1,3 @@
+# Corpus fixtures are binary; a CRLF rewrite inside a PDF corrupts its streams.
+*.pdf binary
+* text=auto eol=lf

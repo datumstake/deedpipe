@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: python ${{ matrix.python }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install pydantic pypdf
+      - name: unit tests
+        run: python tests/test_pipeline.py
+      - name: end to end
+        run: python -m deedpipe run samples/ --out build
+      - name: queue is populated and queryable
+        run: python -m deedpipe queue --out build
+
+  accuracy:
+    # The gate that matters. Not "did it run" -- did it post anything wrong, and did the
+    # rows it posted have holes in them. Either one fails the build.
+    name: accuracy gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install pydantic pypdf
+      - name: score against ground truth
+        run: python tools/score.py samples --threshold 0.80
+      - name: threshold sweep
+        run: python tools/score.py samples --sweep
+
+  corpus:
+    # The corpus generator is seeded, so regenerating it must be a no-op. If the fixtures
+    # and the generator ever disagree, the ground truth has stopped being ground truth.
+    name: corpus reproducible
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install reportlab
+      - run: python tools/make_deeds.py
+      - name: ground truth unchanged
+        run: git diff --exit-code -- samples/*.truth.json
