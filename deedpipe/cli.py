@@ -33,7 +33,7 @@ def cmd_run(args) -> int:
         return 1
 
     out = Path(args.out)
-    backend = get_backend(args.backend)
+    backend = get_backend(args.backend, naive_linewrap=getattr(args, 'naive_linewrap', False))
 
     with Store(out / "titleplant.db", out / "load.csv") as store:
         print(f"{BOLD}deedpipe{OFF}  {len(pdfs)} document(s)  "
@@ -123,6 +123,9 @@ def main(argv=None) -> int:
         sp.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD,
                         help="minimum per-field confidence to post unattended")
         sp.add_argument("--out", default="build", help="output directory")
+        sp.add_argument("--naive-linewrap", action="store_true",
+                        help="reproduce a real defect: truncate wrapped values at the "
+                             "first line. See TextBackend.__init__.")
 
     r = sub.add_parser("run", help="process a folder once")
     r.add_argument("folder")

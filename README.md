@@ -1,7 +1,7 @@
 # deedpipe
 
 [![ci](https://github.com/datumstake/deedpipe/actions/workflows/ci.yml/badge.svg)](https://github.com/datumstake/deedpipe/actions/workflows/ci.yml)
-[![tests](https://img.shields.io/badge/tests-29%20checks-success)](tests/test_pipeline.py)
+[![tests](https://img.shields.io/badge/tests-35%20checks-success)](tests/test_pipeline.py)
 [![posted precision](https://img.shields.io/badge/posted%20precision-100%25-success)](tools/score.py)
 [![python](https://img.shields.io/badge/python-3.10%2B-blue)](.github/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -100,7 +100,7 @@ python tools/make_deeds.py        # 12 documents, 3 county layouts, with ground 
 python -m deedpipe run samples/   # extract, route, load
 python -m deedpipe queue          # what is waiting for review, weakest first
 python tools/score.py --sweep     # the trade-off curve
-python tests/test_pipeline.py     # 29 checks
+python tests/test_pipeline.py     # 35 checks
 ```
 
 No API key, no network, no cloud account. The whole demo runs offline in about a second.
@@ -168,6 +168,32 @@ seeded RNG, and writes the ground truth beside each file because it knows what i
 "Do all your recorders format the same way?" is the question that decides the whole build,
 which is why the corpus answers it in three different ways. A pipeline that only handles
 `marion` looks finished and is not.
+
+## Reproduce the defect yourself
+
+One of the two defects below is wired to a flag, so you can watch the scorer catch it
+instead of taking my word for it:
+
+```sh
+$ python tools/score.py
+  POSTED PRECISION  64/64 = 100.0%   (0 wrong value(s) posted)
+
+$ python tools/score.py --naive-linewrap
+  POSTED PRECISION  60/64 = 93.8%    (4 wrong value(s) posted)
+
+  4 WRONG VALUE(S) POSTED UNATTENDED:
+    marion_00.pdf  legal_description
+      want '...Section 15, Township 11 North, Range 17 West, according to the recorded plat thereof'
+      got  '...Section 15, Township 11 North'
+```
+
+`--naive-linewrap` restores the original behaviour: take only the first line of a value
+that wraps. **Both runs exit successfully and look identical.** The truncated description
+is emitted at full 0.95 confidence — not dropped, not flagged, just quietly describing a
+different piece of land. Only the per-field comparison against ground truth separates them.
+
+The switch is covered by its own test, because a reproduction nobody checks is worse than
+none: it looks like evidence while quietly doing nothing.
 
 ## Two defects the scorer caught
 

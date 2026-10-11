@@ -58,14 +58,15 @@ def normalise(field: str, value: str | None) -> str:
 
 
 def score_folder(folder: Path, backend_name: str = "text",
-                 threshold: float = DEFAULT_THRESHOLD, quiet: bool = False) -> int:
+                 threshold: float = DEFAULT_THRESHOLD, quiet: bool = False,
+                 naive_linewrap: bool = False) -> int:
     pdfs = sorted(folder.glob("*.pdf"))
     truths = {p.stem: p for p in folder.glob("*.truth.json")}
     if not pdfs:
         print(f"no PDFs in {folder}", file=sys.stderr)
         return 1
 
-    backend = get_backend(backend_name)
+    backend = get_backend(backend_name, naive_linewrap=naive_linewrap)
 
     # per field: [posted_correct, posted_total, present_correct, present_total, truth_total]
     tally = {f: [0, 0, 0, 0, 0] for f in INDEXED_FIELDS}
@@ -181,10 +182,15 @@ def main(argv=None) -> int:
     p.add_argument("--backend", default="text", choices=["text", "vision"])
     p.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
     p.add_argument("--sweep", action="store_true", help="scan the whole threshold curve")
+    p.add_argument("--naive-linewrap", action="store_true",
+                   help="reproduce a real defect: take only the first line of a "
+                        "wrapped value, which truncates legal descriptions into a "
+                        "description of different land and posts them at 0.95")
     a = p.parse_args(argv)
     if a.sweep:
         return sweep(a.folder, a.backend)
-    return score_folder(a.folder, a.backend, a.threshold)
+    return score_folder(a.folder, a.backend, a.threshold,
+                        naive_linewrap=a.naive_linewrap)
 
 
 if __name__ == "__main__":

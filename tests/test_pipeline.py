@@ -156,11 +156,45 @@ def test_corpus_end_to_end():
     ok(queued > 0, "corpus: the unlabelled layout is routed for review, not guessed")
 
 
+def test_naive_linewrap_reproduces_the_defect():
+    """The planted defect must actually plant, and the scorer must actually catch it.
+
+    A reproduction switch nobody checks is worse than no switch: it looks like evidence
+    while quietly doing nothing. So this asserts both halves - clean scores perfectly,
+    naive posts wrong values - and would fail if either stopped being true.
+    """
+    samples = Path(__file__).resolve().parent.parent / "samples"
+    if not samples.exists() or not list(samples.glob("*.pdf")):
+        print("  SKIP  corpus not generated (python tools/make_deeds.py)")
+        return
+    sys.path.insert(0, str(samples.parent))
+    from tools.score import score_folder          # noqa: PLC0415
+
+    _, clean_prec, _, _, _, clean_wrong = score_folder(samples, "text", 0.80, quiet=True)
+    eq(clean_wrong, 0, "defect switch off: nothing wrong posted")
+    eq(clean_prec, 1.0, "defect switch off: precision 100%")
+
+    _, naive_prec, _, _, _, naive_wrong = score_folder(
+        samples, "text", 0.80, quiet=True, naive_linewrap=True)
+    ok(naive_wrong > 0, "defect switch on: wrong values ARE posted")
+    ok(naive_prec < 1.0, "defect switch on: precision drops")
+
+    # And the point of the whole exercise: the run succeeds either way. The defect is
+    # invisible to anything except a per-field comparison against ground truth.
+    b = TextBackend(naive_linewrap=True)
+    rec = b.extract(samples / "marion_00.pdf")
+    ok(rec.legal_description.present,
+       "defect switch on: the truncated value is still emitted, not dropped")
+    ok(rec.legal_description.confidence >= 0.95,
+       "defect switch on: and it is emitted at FULL confidence - that is the problem")
+
+
 if __name__ == "__main__":
     print("deedpipe tests\n")
     for fn in (test_routing, test_dates, test_validator_drops_rather_than_weakens,
                test_leading_zeros_survive, test_store_idempotent,
-               test_store_records_exceptions, test_corpus_end_to_end):
+               test_store_records_exceptions, test_corpus_end_to_end,
+               test_naive_linewrap_reproduces_the_defect):
         fn()
     print(f"\n{checks} checks, {failures} failure(s)")
     sys.exit(1 if failures else 0)

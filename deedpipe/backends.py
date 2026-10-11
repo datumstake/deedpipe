@@ -129,6 +129,22 @@ class TextBackend:
 
     name = "text"
 
+    def __init__(self, naive_linewrap: bool = False):
+        # Reproduces a real defect on demand, the same way self-verifying-ratchet plants
+        # a sabotaged move so you can watch it get rolled back. With this set, the
+        # label-and-next-line strategy takes ONLY the first line of a wrapped value --
+        # which is what it originally did. It does not fail loudly. It truncates a legal
+        # description mid-sentence at a plausible boundary and posts it, unattended, at
+        # 95% confidence, describing a different piece of land.
+        #
+        #     python tools/score.py                    -> 64/64 = 100%, 0 wrong
+        #     python tools/score.py --naive-linewrap   -> 4 wrong values posted
+        #
+        # The point is not that the bug existed. It is that a successful run looks
+        # identical either way, and only a per-field score against ground truth tells
+        # them apart.
+        self.naive_linewrap = naive_linewrap
+
     def extract(self, pdf: Path) -> DeedRecord:
         raw, pages = read_text(pdf)
         lines = [ln.strip() for ln in raw.splitlines()]
@@ -166,7 +182,8 @@ class TextBackend:
                 # it truncates mid-sentence at a plausible boundary and posts a legal
                 # description that describes a different piece of land. Found by scoring
                 # the output, not by the run succeeding.
-                span = len(lines) if field == "legal_description" else i + 3
+                wraps = field == "legal_description" and not self.naive_linewrap
+                span = len(lines) if wraps else i + 3
                 collected: list[str] = []
                 for j in range(i + 1, min(span, len(lines))):
                     nxt = lines[j]
@@ -177,7 +194,7 @@ class TextBackend:
                     if lowered[j] in all_labels:
                         break
                     collected.append(nxt)
-                    if field != "legal_description":
+                    if not wraps:
                         break
                 if collected:
                     value = " ".join(collected)
@@ -327,9 +344,9 @@ class VisionBackend:
         )
 
 
-def get_backend(name: str) -> Backend:
+def get_backend(name: str, naive_linewrap: bool = False) -> Backend:
     if name == "text":
-        return TextBackend()
+        return TextBackend(naive_linewrap=naive_linewrap)
     if name == "vision":
         return VisionBackend()
     raise ValueError(f"unknown backend: {name!r} (text|vision)")
