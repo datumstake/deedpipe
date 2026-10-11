@@ -1,5 +1,11 @@
 # deedpipe
 
+[![ci](https://github.com/datumstake/deedpipe/actions/workflows/ci.yml/badge.svg)](https://github.com/datumstake/deedpipe/actions/workflows/ci.yml)
+[![tests](https://img.shields.io/badge/tests-29%20checks-success)](tests/test_pipeline.py)
+[![posted precision](https://img.shields.io/badge/posted%20precision-100%25-success)](tools/score.py)
+[![python](https://img.shields.io/badge/python-3.10%2B-blue)](.github/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 **Recorded-document extraction with an exception queue that actually tells you something.**
 
 Watch a folder of scanned deeds, mortgages and releases. Extract the indexed fields into a
