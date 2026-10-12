@@ -169,6 +169,22 @@ seeded RNG, and writes the ground truth beside each file because it knows what i
 which is why the corpus answers it in three different ways. A pipeline that only handles
 `marion` looks finished and is not.
 
+## Watch it happen
+
+```sh
+python demo/record_session.py --rehearse   # cues and timings, runs nothing
+python demo/record_session.py              # the scripted session, 5s countdown
+```
+
+A scripted terminal session for a screen recording: types each command at human speed,
+**runs it for real**, and holds on the output long enough to talk over. Nothing is canned
+and nothing is replayed from a transcript — if the pipeline broke, the recording breaks,
+which is the only honest way to record a demo about output you are asking people to trust.
+
+`--rehearse` also checks itself: it estimates how long each narration beat takes at 150
+wpm and flags any shot whose hold is too short to say it in. The first draft came out at
+1:14 for a three-minute script, which is how that check came to exist.
+
 ## Reproduce the defect yourself
 
 One of the two defects below is wired to a flag, so you can watch the scorer catch it
